@@ -38,7 +38,7 @@ echo "🔧 Initializing environment..."
 source .env
 
 # Validate required environment variables
-required_vars=("COOKIE_KEY" "MONGO_ROOT_USERNAME" "MONGO_ROOT_PASSWORD" "DB_HOST" "DB_NAME" "TRAEFIK_DOMAIN")
+required_vars=("COOKIE_KEY" "MONGO_ROOT_USERNAME" "MONGO_ROOT_PASSWORD" "DB_HOST" "DB_NAME")
 for var in "${required_vars[@]}"; do
     if [ -z "${!var}" ]; then
         echo "❌ Required environment variable $var is not set in .env file"
@@ -81,19 +81,36 @@ fi
 
 echo "✅ All services are running"
 
+# Read domain configuration from environment or compose.yml
+if [ -n "$LTI_DOMAIN" ]; then
+    APP_DOMAIN="$LTI_DOMAIN"
+else
+    # Extract from compose.yml as fallback
+    APP_DOMAIN=$(grep -o 'Host(`[^`]*`)' compose.yml | grep -v traefik | sed 's/Host(`//g' | sed 's/`)//g' | head -1)
+    APP_DOMAIN=${APP_DOMAIN:-"lti.csbasics.in"}
+fi
+
+if [ -n "$TRAEFIK_DASHBOARD_DOMAIN" ]; then
+    DASHBOARD_DOMAIN="$TRAEFIK_DASHBOARD_DOMAIN"
+else
+    # Extract from compose.yml as fallback
+    DASHBOARD_DOMAIN=$(grep -o 'Host(`[^`]*`)' compose.yml | grep traefik | sed 's/Host(`//g' | sed 's/`)//g' | head -1)
+    DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN:-"traefik.lti.csbasics.in"}
+fi
+
 # Display deployment information
 echo ""
 echo "🎉 Deployment Complete!"
 echo "===================="
-echo "Application URL: https://$TRAEFIK_DOMAIN"
-echo "Traefik Dashboard: https://$TRAEFIK_DOMAIN:8080"
+echo "Application URL: https://$APP_DOMAIN"
+echo "Traefik Dashboard: https://$DASHBOARD_DOMAIN"
 echo ""
 echo "To view logs: docker compose logs -f"
 echo "To stop: docker compose down"
 echo "To restart: docker compose restart"
 echo ""
 echo "LTI Registration Details:"
-echo "- Login URL: https://$TRAEFIK_DOMAIN/login"
-echo "- Target URL: https://$TRAEFIK_DOMAIN/"
-echo "- JWK Set URL: https://$TRAEFIK_DOMAIN/.well-known/jwks"
+echo "- Login URL: https://$APP_DOMAIN/login"
+echo "- Target URL: https://$APP_DOMAIN/"
+echo "- JWK Set URL: https://$APP_DOMAIN/.well-known/jwks"
 echo ""
