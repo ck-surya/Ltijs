@@ -1,0 +1,84 @@
+version: "3.8"
+
+services:
+  traefik:
+    image: traefik:v3.0
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik dashboard (remove in production)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - ./data/letsencrypt:/letsencrypt
+      - ./logs/traefik:/var/log/traefik
+    environment:
+      - TRAEFIK_LOG_LEVEL=INFO
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.lti.csbasics.in`)"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik.service=api@internal"
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    volumes:
+      - mongodata:/data/db
+      - ./logs/mongo:/var/log/mongodb
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet -u ${MONGO_ROOT_USERNAME} -p ${MONGO_ROOT_PASSWORD} --authenticationDatabase admin --eval 'db.runCommand({ ping: 1 }).ok' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    build: .
+    env_file: .env
+    environment:
+      MONGO_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./logs/app:/app/logs
+    networks:
+      - web
+      - internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lti-app.rule=Host(`lti.csbasics.in`)"
+      - "traefik.http.routers.lti-app.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.lti-app.entrypoints=websecure"
+      - "traefik.http.services.lti-app.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.lti-app-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.routers.lti-app.middlewares=lti-app-headers"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  mongodata:
+
+networks:
+  web:
+    external: true
+  internal:
+    internal: true
