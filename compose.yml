@@ -18,7 +18,7 @@ services:
       - web
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.traefik.rule=Host(`traefik.lti.csbasics.in`)"
+      - "traefik.http.routers.traefik.rule=Host(`${TRAEFIK_DASHBOARD_DOMAIN}`)"
       - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
       - "traefik.http.routers.traefik.service=api@internal"
 
@@ -60,7 +60,7 @@ services:
       - internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.lti-app.rule=Host(`lti.csbasics.in`)"
+      - "traefik.http.routers.lti-app.rule=Host(`${LTI_DOMAIN}`)"
       - "traefik.http.routers.lti-app.tls.certresolver=letsencrypt"
       - "traefik.http.routers.lti-app.entrypoints=websecure"
       - "traefik.http.services.lti-app.loadbalancer.server.port=3000"
