@@ -1,11 +1,69 @@
+# Development files
 node_modules
+npm-debug.log*
+.npm
+
+# Environment files
+.env*
+!.env.example
+
+# Git
 .git
 .gitignore
-.env*
+
+# Docker files
 .dockerignore
 Dockerfile
 compose.yml
+
+# Documentation
 README.md
+*.md
+
+# External volumes (mounted separately)
 logs/
 data/
-*.md
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output
+
+# Build artifacts
+dist/
+build/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Backup files
+*.backup
+*.bak
+backup_*/
+
+# Deployment scripts (not needed in container)
+create-package.sh
+deploy.sh
+backup.sh
+
+# Unused legacy files
+org-index.js
+scripts/
+index.js
+
+# Archive files
+*.tar.gz
+*.zip
+*.tar
+*.rar

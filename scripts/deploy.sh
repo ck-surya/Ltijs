@@ -21,15 +21,24 @@ fi
 
 # Check if .env file exists
 if [ ! -f .env ]; then
-    echo "❌ .env file not found. Please copy .env.example to .env and configure it."
-    exit 1
+    echo "❌ .env file not found. Running environment initialization..."
+    ./scripts/init-env.sh
+    echo ""
+    echo "⚠️  Please review and edit .env file with your specific configuration before continuing."
+    echo "   nano .env"
+    echo ""
+    read -p "Press Enter to continue after configuring .env file..."
 fi
+
+# Run environment initialization to ensure all required variables are set
+echo "🔧 Initializing environment..."
+./scripts/init-env.sh
 
 # Source environment variables
 source .env
 
 # Validate required environment variables
-required_vars=("LTIJS_KEY" "DB_HOST" "DB_NAME" "LTI_ISSUER" "TRAEFIK_DOMAIN")
+required_vars=("COOKIE_KEY" "MONGO_ROOT_USERNAME" "MONGO_ROOT_PASSWORD" "DB_HOST" "DB_NAME" "TRAEFIK_DOMAIN")
 for var in "${required_vars[@]}"; do
     if [ -z "${!var}" ]; then
         echo "❌ Required environment variable $var is not set in .env file"
@@ -41,10 +50,16 @@ echo "✅ Environment validation complete"
 
 # Create necessary directories
 echo "📁 Creating necessary directories..."
-mkdir -p data/db data/traefik logs
+mkdir -p data/db data/traefik logs/app logs/mongo logs/traefik
 
 # Set proper permissions
-chmod 755 data/db data/traefik logs
+chmod 755 data/db data/traefik logs logs/app logs/mongo logs/traefik
+
+# Create Docker network if it doesn't exist
+if ! docker network ls | grep -q "web"; then
+    echo "🌐 Creating Docker network 'web'..."
+    docker network create web
+fi
 
 echo "🏗️  Building and starting services..."
 
